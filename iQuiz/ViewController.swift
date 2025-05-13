@@ -7,20 +7,50 @@
 
 import UIKit
 
+struct Question {
+    let text: String
+    let options: [String]
+    let correctAnswerIndex: Int
+}
+
 struct Quiz {
     let title: String
     let description: String
     let icon: String
+    var questions: [Question]
 }
 
 class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
     private let tableView = UITableView()
+    private let userDefaults = UserDefaults.standard
+    private let hasSeenSwipeGuideKey = "hasSeenSwipeGuide"
     
     private let quizzes: [Quiz] = [
-        Quiz(title: "Mathematics", description: "Test your math skills", icon: "number.circle"),
-        Quiz(title: "Marvel Super Heroes", description: "How well do you know Marvel?", icon: "bolt.circle"),
-        Quiz(title: "Science", description: "Quiz on scientific facts", icon: "atom")
+        Quiz(title: "Mathematics", 
+            description: "Test your math skills", 
+            icon: "number.circle",
+            questions: [
+                Question(text: "What is 2+2?", options: ["3", "4", "5"], correctAnswerIndex: 1),
+                Question(text: "What is 7×8?", options: ["54", "56", "58"], correctAnswerIndex: 1),
+                Question(text: "What is the square root of 9?", options: ["3", "4", "9"], correctAnswerIndex: 0)
+            ]),
+        Quiz(title: "Marvel Super Heroes", 
+            description: "How well do you know Marvel?", 
+            icon: "bolt.circle",
+            questions: [
+                Question(text: "Who is Iron Man?", options: ["Tony Stark", "Steve Rogers", "Bruce Banner"], correctAnswerIndex: 0),
+                Question(text: "What is Captain America's shield made of?", options: ["Steel", "Adamantium", "Vibranium"], correctAnswerIndex: 2),
+                Question(text: "Who is Thor's brother?", options: ["Odin", "Loki", "Heimdall"], correctAnswerIndex: 1)
+            ]),
+        Quiz(title: "Science", 
+            description: "Quiz on scientific facts", 
+            icon: "atom",
+            questions: [
+                Question(text: "What is the chemical symbol for water?", options: ["WA", "H2O", "W"], correctAnswerIndex: 1),
+                Question(text: "What planet is known as the Red Planet?", options: ["Venus", "Mars", "Jupiter"], correctAnswerIndex: 1),
+                Question(text: "What is the hardest natural substance on Earth?", options: ["Diamond", "Platinum", "Gold"], correctAnswerIndex: 0)
+            ])
     ]
     
     override func viewDidLoad() {
@@ -88,7 +118,48 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        // This would be implemented in Part 2
+        
+        let selectedQuiz = quizzes[indexPath.row]
+        
+        if !selectedQuiz.questions.isEmpty {
+            if !userDefaults.bool(forKey: hasSeenSwipeGuideKey) {
+                showSwipeGuide(for: selectedQuiz)
+            } else {
+                navigateToQuiz(selectedQuiz)
+            }
+        }
+    }
+    
+    private func showSwipeGuide(for quiz: Quiz) {
+        let guideView = SwipeGuideView()
+        guideView.translatesAutoresizingMaskIntoConstraints = false
+        guideView.onClose = { [weak self] in
+            UIView.animate(withDuration: 0.3, animations: {
+                guideView.alpha = 0
+            }) { _ in
+                guideView.removeFromSuperview()
+                self?.userDefaults.setValue(true, forKey: self?.hasSeenSwipeGuideKey ?? "")
+                self?.navigateToQuiz(quiz)
+            }
+        }
+        
+        view.addSubview(guideView)
+        guideView.alpha = 0
+        
+        NSLayoutConstraint.activate([
+            guideView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            guideView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            guideView.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.8),
+        ])
+        
+        UIView.animate(withDuration: 0.3) {
+            guideView.alpha = 1
+        }
+    }
+    
+    private func navigateToQuiz(_ quiz: Quiz) {
+        let questionVC = QuestionViewController(quiz: quiz, questionIndex: 0, score: 0)
+        navigationController?.pushViewController(questionVC, animated: true)
     }
 }
 
