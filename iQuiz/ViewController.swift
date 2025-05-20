@@ -81,19 +81,22 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
     
     private func loadQuizData() {
-        // Check if we have saved quizzes
+        // First try to load from local storage
         if let savedQuizzes = QuizDataStore.shared.loadQuizzes() {
             self.quizzes = QuizDataStore.shared.convertToAppQuizzes(savedQuizzes)
             self.tableView.reloadData()
         } else {
             // Use the default quizzes if no saved data
             self.quizzes = defaultQuizzes
+            self.tableView.reloadData()
         }
         
-        // Try to refresh from network if it's been long enough
-        let interval = SettingsManager.shared.refreshInterval
-        if QuizDataStore.shared.shouldRefresh(interval: interval) {
-            refreshData()
+        // Only try to refresh from network if we're online
+        if NetworkManager.shared.isConnected {
+            let interval = SettingsManager.shared.refreshInterval
+            if QuizDataStore.shared.shouldRefresh(interval: interval) {
+                refreshData()
+            }
         }
     }
     
@@ -167,7 +170,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         navigationController?.pushViewController(settingsVC, animated: true)
     }
     
-    // MARK: - UITableViewDataSource
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return quizzes.count
@@ -180,7 +182,6 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         return cell
     }
     
-    // MARK: - UITableViewDelegate
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 80
@@ -276,24 +277,20 @@ class QuizTableViewCell: UITableViewCell {
     }
     
     private func setupViews() {
-        // Icon setup
         contentView.addSubview(iconImageView)
         iconImageView.translatesAutoresizingMaskIntoConstraints = false
         iconImageView.contentMode = .scaleAspectFit
         iconImageView.tintColor = .systemBlue
         
-        // Title setup
         contentView.addSubview(titleLabel)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = UIFont.boldSystemFont(ofSize: 16)
         
-        // Description setup
         contentView.addSubview(descriptionLabel)
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         descriptionLabel.font = UIFont.systemFont(ofSize: 14)
         descriptionLabel.textColor = .darkGray
         
-        // Constraints
         NSLayoutConstraint.activate([
             iconImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             iconImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
